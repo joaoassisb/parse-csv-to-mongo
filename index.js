@@ -15,13 +15,21 @@ var end = Date.now();
 var timeSpent = (end - begin) / 1000 + "secs";
 var saquesCriados = 0;
 
+const filePath = process.env.FILEPATH;
+
+if (!filePath) {
+  throw new Error(
+    "É necessário definir o caminho do arquivo através da variável FILEPATH"
+  );
+}
+
 mongoose
   .connect("mongodb://localhost:27017/tcc-mongo", {
     useNewUrlParser: true
   })
   .then(() => {
     console.log("Conexão com banco de dados estabelecida com sucesso");
-    fs.createReadStream("./teste.csv", {
+    fs.createReadStream(filePath, {
       encoding: "utf8"
     })
       .pipe(csv.parse({ delimiter: ";" }))
