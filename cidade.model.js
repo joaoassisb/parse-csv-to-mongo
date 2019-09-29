@@ -11,7 +11,6 @@ const CidadeSchema = new Schema({
   },
   codigo: {
     type: String,
-    unique: true,
     required: true
   },
   uf: {
