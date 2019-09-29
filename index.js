@@ -114,6 +114,5 @@ function criarRegistroBanco([
     })
     .catch(err => {
       console.log("Erro na criação de um registro", err);
-      process.exit(0);
     });
 }

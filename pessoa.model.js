@@ -9,8 +9,7 @@ const PessoaSchema = new Schema({
     required: true
   },
   nis: {
-    type: String,
-    unique: true
+    type: String
   }
 });
 
