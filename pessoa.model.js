@@ -13,6 +13,8 @@ const PessoaSchema = new Schema({
   }
 });
 
+PessoaSchema.index({ nis: 1 });
+
 PessoaSchema.method({
   loadOrCreate() {
     return this.model("Pessoa")

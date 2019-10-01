@@ -11,9 +11,11 @@ const Saque = require("./saque.model");
 
 var begin = Date.now();
 let saquesCriados = 0;
-let pessoasCriadas =0;
-let cidadesCriadas=0;
+let pessoasCriadas = 0;
+let cidadesCriadas = 0;
+
 const filePath = process.env.FILEPATH;
+const firstImportation = process.env.FIRST;
 
 if (!filePath) {
   throw new Error(
@@ -21,8 +23,8 @@ if (!filePath) {
   );
 }
 
-const mapaPessoas = new Map();
 const mapaCidades = new Map();
+const mapaPessoas = new Map();
 
 mongoose
   .connect("mongodb://localhost:27017/tcc-mongo", {
@@ -30,29 +32,70 @@ mongoose
   })
   .then(() => {
     console.log("Conexão com banco de dados estabelecida com sucesso");
+  })
+  .then(() => {
     fs.createReadStream(filePath, {
       encoding: "utf8"
     })
       .pipe(csv.parse({ delimiter: ";" }))
       .pipe(bufferizeDocuments())
       .on("data", function(data) {
-        criarRegistros(data);
+        if (firstImportation) {
+          criarRegistros(data);
+        } else {
+          Promise.all(
+            data.map(
+              ([
+                mesReferencia,
+                mesCompetencia,
+                sigla,
+                codigoMunicipio,
+                nomeMunicipio,
+                nisFavorecido,
+                nomeFavorecido,
+                data,
+                valor
+              ]) =>
+                Promise.all([
+                  getCidade({ codigo: codigoMunicipio }),
+                  getPessoa({ nis: nisFavorecido })
+                ]).then(([cidade, pessoa]) => {
+                  let newPessoa = {};
+
+                  if (!pessoa._id) {
+                    newPessoa = new Pessoa({
+                      nome: nomeFavorecido,
+                      nis: nisFavorecido
+                    });
+
+                    insertPessoas([newPessoa]);
+                  }
+
+                  const saque = new Saque({
+                    favorecido: newPessoa._id || pessoa._id,
+                    municipio: cidade._id,
+                    mesCompetencia,
+                    mesCompetencia,
+                    data,
+                    valor: parseFloat(valor)
+                  });
+                  return saque;
+                })
+            )
+          )
+            .then(saques => {
+              const saquesNormalizados = saques.filter(saque => saque);
+              insertSaques(saquesNormalizados);
+            })
+            .catch(err => {
+              console.log("Erro", err);
+              process.exit(0);
+            });
+        }
       })
       .on("end", function() {
         console.log("FINISHED READING");
       });
-
-    //   .on("data", function(data) {
-    //     if (!data || !Array.isArray(data) || data[2] === "UF") {
-    //       return;
-    //     }
-
-    //     return criarRegistroBanco(data);
-    //   })
-    //   .on("error", function(err) {
-    //     console.log(err);
-    //     process.exit(0);
-    //   });
   })
   .catch(err => {
     console.log("Conexão com banco de dados falhou !", err);
@@ -77,7 +120,7 @@ function criarRegistros(data) {
       valor
     ] = linha;
 
-    let cidade;
+    let cidade, pessoa;
 
     if (mapaCidades.has(codigoMunicipio)) {
       cidade = mapaCidades.get(codigoMunicipio);
@@ -92,12 +135,16 @@ function criarRegistros(data) {
       cidades.push(cidade);
     }
 
-    const pessoa = new Pessoa({
-      nome: nomeFavorecido,
-      nis: nisFavorecido
-    });
+    if (mapaPessoas.has(nisFavorecido)) {
+      pessoa = mapaPessoas.get(nisFavorecido);
+    } else {
+      pessoa = new Pessoa({
+        nome: nomeFavorecido,
+        nis: nisFavorecido
+      });
 
-    pessoas.push(pessoa)
+      pessoas.push(pessoa);
+    }
 
     const saque = new Saque({
       favorecido: pessoa._id,
@@ -111,54 +158,45 @@ function criarRegistros(data) {
     saques.push(saque);
   });
 
+  insertCidades(cidades);
+  insertPessoas(pessoas);
+  insertSaques(saques);
+}
+
+function insertSaques(saques) {
   var end = Date.now();
   var timeSpent = (end - begin) / 1000 + "secs";
-  
   saquesCriados += saques.length;
-  pessoasCriadas += pessoas.length;
-  cidadesCriadas += cidades.length;
 
   console.log(
     `Saques criados: ${saquesCriados} - Pessoas criadas: ${pessoasCriadas} - Cidades criadas: ${cidadesCriadas} - Tempo gasto ${timeSpent}`
   );
 
-  Pessoa.insertMany(pessoas);
-  Cidade.insertMany(cidades);
   Saque.insertMany(saques);
 }
 
-function criarRegistroBanco([
-  mesReferencia,
-  mesCompetencia,
-  sigla,
-  codigoMunicipio,
-  nomeMunicipio,
-  nisFavorecido,
-  nomeFavorecido,
-  data,
-  valor
-]) {
-  const pessoa = new Pessoa({
-    nome: nomeFavorecido,
-    nis: nisFavorecido
-  });
+function insertCidades(cidades) {
+  if (cidades.length > 0) {
+    cidadesCriadas += cidades.length;
+    Cidade.insertMany(cidades);
+  }
+}
 
-  const cidade = new Cidade({
-    nome: nomeMunicipio,
-    codigo: codigoMunicipio,
-    uf: sigla
-  });
+function insertPessoas(pessoas) {
+  if (pessoas.length > 0) {
+    Pessoa.insertMany(pessoas);
+    pessoasCriadas += pessoas.length;
+  }
+}
 
-  const saque = new Saque({
-    favorecido: pessoa._id,
-    municipio: cidade._id,
-    mesCompetencia,
-    mesCompetencia,
-    data,
-    valor: parseFloat(valor)
-  });
+function getCidade(cidade) {
+  return Cidade.findOne(cidade);
+}
 
-  pessoa.loadOrCreate();
-  cidade.loadOrCreate();
-  saque.save();
+function getPessoa(pessoa) {
+  return Pessoa.findOne(pessoa).then(pessoa => {
+    if (!pessoa) {
+      return {};
+    } else return pessoa;
+  });
 }

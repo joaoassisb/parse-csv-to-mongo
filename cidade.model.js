@@ -20,6 +20,8 @@ const CidadeSchema = new Schema({
   }
 });
 
+CidadeSchema.index({ codigo: 1 });
+
 CidadeSchema.method({
   loadOrCreate() {
     return this.model("Cidade")
