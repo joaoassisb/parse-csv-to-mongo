@@ -11,6 +11,8 @@ const Saque = require("./saque.model");
 
 var begin = Date.now();
 let saquesCriados = 0;
+let pessoasCriadas =0;
+let cidadesCriadas=0;
 const filePath = process.env.FILEPATH;
 
 if (!filePath) {
@@ -95,6 +97,8 @@ function criarRegistros(data) {
       nis: nisFavorecido
     });
 
+    pessoas.push(pessoa)
+
     const saque = new Saque({
       favorecido: pessoa._id,
       municipio: cidade._id,
@@ -109,10 +113,13 @@ function criarRegistros(data) {
 
   var end = Date.now();
   var timeSpent = (end - begin) / 1000 + "secs";
+  
+  saquesCriados += saques.length;
+  pessoasCriadas += pessoas.length;
+  cidadesCriadas += cidades.length;
 
   console.log(
-    `Saques criados: ${(saquesCriados +=
-      saques.length)} - Tempo gasto ${timeSpent}`
+    `Saques criados: ${saquesCriados} - Pessoas criadas: ${pessoasCriadas} - Cidades criadas: ${cidadesCriadas} - Tempo gasto ${timeSpent}`
   );
 
   Pessoa.insertMany(pessoas);
