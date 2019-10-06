@@ -2,12 +2,17 @@
 
 var nano = require("nano")("http://localhost:5984"),
   db = nano.use("tcc");
-
+const util = require("util");
 const uuidV4 = require("uuid/v4");
+
+const promisifiedBulk = util.promisify(db.bulk);
+
 let saquesCriados = 0;
 let pessoasCriadas = 0;
 let cidadesCriadas = 0;
 var begin = Date.now();
+const mapaCidades = new Map();
+const mapaPessoas = new Map();
 
 module.exports = {
   criarRegistros(data, primeiraImportacao) {
@@ -32,23 +37,34 @@ module.exports = {
         valor
       ] = linha;
 
-      const pessoaId = uuidV4();
-      const cidadeId = uuidV4();
+      let cidadeId, pessoaId;
 
-      pessoas.push({
-        _id: pessoaId,
-        nome: nomeFavorecido,
-        nis: nisFavorecido,
-        tipo: "Pessoa"
-      });
+      if (mapaCidades.has(codigoMunicipio)) {
+        cidadeId = mapaCidades.get(codigoMunicipio);
+      } else {
+        cidadeId = uuidV4();
+        cidades.push({
+          _id: cidadeId,
+          nome: nomeMunicipio,
+          codigo: codigoMunicipio,
+          uf: sigla,
+          tipo: "Cidade"
+        });
+        mapaCidades.set(codigoMunicipio, cidadeId);
+      }
+      if (mapaPessoas.has(nisFavorecido)) {
+        pessoaId = mapaPessoas.get(nisFavorecido);
+      } else {
+        pessoaId = uuidV4();
+        pessoas.push({
+          _id: pessoaId,
+          nome: nomeFavorecido,
+          nis: nisFavorecido,
+          tipo: "Pessoa"
+        });
 
-      cidades.push({
-        _id: cidadeId,
-        nome: nomeMunicipio,
-        codigo: codigoMunicipio,
-        uf: sigla,
-        tipo: "Cidade"
-      });
+        mapaPessoas.set(nisFavorecido, pessoaId);
+      }
 
       saques.push({
         favorecido: pessoaId,
@@ -61,16 +77,11 @@ module.exports = {
     });
 
     const registros = [...pessoas, ...cidades, ...saques];
-  
-    db.bulk(
-      {
-        docs: registros
-      },
-      (err, data) => {
-        if (err) {
-          throw new Error(err);
-        }
 
+    return promisifiedBulk({
+      docs: registros
+    })
+      .then(() => {
         saquesCriados += saques.length;
         pessoasCriadas += pessoas.length;
         cidadesCriadas += cidades.length;
@@ -81,7 +92,10 @@ module.exports = {
         console.log(
           `Saques criados: ${saquesCriados} - Pessoas criadas: ${pessoasCriadas} - Cidades criadas: ${cidadesCriadas} - Tempo gasto ${timeSpent}`
         );
-      }
-    );
+      })
+      .catch(err => {
+        console.log(err);
+        process.exit(0);
+      });
   }
 };

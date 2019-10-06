@@ -6,6 +6,9 @@ let pessoasCriadas = 0;
 let cidadesCriadas = 0;
 var begin = Date.now();
 
+const mapaCidades = new Map();
+const mapaPessoas = new Map();
+
 module.exports = {
   connectToMongo() {
     return mongoose.connect("mongodb://localhost:27017/tcc-mongo", {

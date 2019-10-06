@@ -27,9 +27,6 @@ if (!filePath) {
   );
 }
 
-const mapaCidades = new Map();
-const mapaPessoas = new Map();
-
 dbConnection
   .then(() => {
     console.log("Conexão com banco de dados estabelecida com sucesso");
@@ -44,7 +41,7 @@ dbConnection
         if (database === "mongo") {
           criarRegistrosMongo(data, firstImportation);
         } else {
-          criarRegistrosCouch(data, firstImportation);
+          return criarRegistrosCouch(data, firstImportation);
         }
       })
       .on("end", function() {
