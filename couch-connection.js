@@ -7,10 +7,9 @@ const uuidV4 = require("uuid/v4");
 
 const promisifiedBulk = util.promisify(db.bulk);
 
-let saquesCriados = 0;
-let pessoasCriadas = 0;
-let cidadesCriadas = 0;
+let registrosCriados = 0;
 var begin = Date.now();
+
 const mapaCidades = new Map();
 const mapaPessoas = new Map();
 
@@ -77,25 +76,22 @@ module.exports = {
     });
 
     const registros = [...pessoas, ...cidades, ...saques];
+    const promiseSize = 100;
 
-    return promisifiedBulk({
-      docs: registros
-    })
-      .then(() => {
-        saquesCriados += saques.length;
-        pessoasCriadas += pessoas.length;
-        cidadesCriadas += cidades.length;
+    for (let index = 0; index < data.length; index += promiseSize) {
+      setTimeout(() => {
+        promisifiedBulk({
+          docs: registros.splice(index, index + promiseSize)
+        }).then(() => {
+          var end = Date.now();
+          var timeSpent = (end - begin) / 1000 + "secs";
+          registrosCriados += promiseSize;
 
-        var end = Date.now();
-        var timeSpent = (end - begin) / 1000 + "secs";
-
-        console.log(
-          `Saques criados: ${saquesCriados} - Pessoas criadas: ${pessoasCriadas} - Cidades criadas: ${cidadesCriadas} - Tempo gasto ${timeSpent}`
-        );
-      })
-      .catch(err => {
-        console.log(err);
-        process.exit(0);
-      });
+          console.log(
+            `Registros criados ${registrosCriados} - Tempo gasto ${timeSpent}`
+          );
+        });
+      }, 10);
+    }
   }
 };

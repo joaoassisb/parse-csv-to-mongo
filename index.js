@@ -41,7 +41,7 @@ dbConnection
         if (database === "mongo") {
           criarRegistrosMongo(data, firstImportation);
         } else {
-          return criarRegistrosCouch(data, firstImportation);
+          criarRegistrosCouch(data, firstImportation);
         }
       })
       .on("end", function() {
