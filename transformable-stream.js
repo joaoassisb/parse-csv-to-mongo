@@ -20,7 +20,7 @@ module.exports = {
         }
         setTimeout(() => {
           next();
-        }, 0.001)
+        }, 0)
       },
       flush(done) {
         if (buffer.length > 0) {
