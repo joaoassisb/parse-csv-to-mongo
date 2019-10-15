@@ -26,6 +26,7 @@ if (!filePath) {
     "É necessário definir o caminho do arquivo através da variável FILEPATH"
   );
 }
+const begin = Date.now()
 
 dbConnection
   .then(() => {
@@ -37,14 +38,14 @@ dbConnection
     })
       .pipe(csv.parse({ delimiter: ";" }))
       .pipe(bufferizeDocuments())
-      .on("data", function(data) {
+      .on("data", function (data) {
         if (database === "mongo") {
           criarRegistrosMongo(data, firstImportation);
         } else {
           criarRegistrosCouch(data, firstImportation);
         }
       })
-      .on("end", function() {
+      .on("end", function () {
         console.log("FINISHED READING");
       });
   })

@@ -4,7 +4,7 @@ const { Transform } = require("stream");
 
 const mongoose = require("mongoose");
 
-const BUFFER_SIZE = 10000;
+const BUFFER_SIZE = 1000;
 
 module.exports = {
   bufferizeDocuments() {
@@ -18,8 +18,9 @@ module.exports = {
           this.push(buffer);
           buffer = [];
         }
-
-        next();
+        setTimeout(() => {
+          next();
+        }, 0.001)
       },
       flush(done) {
         if (buffer.length > 0) {

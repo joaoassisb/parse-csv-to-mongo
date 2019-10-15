@@ -76,22 +76,20 @@ module.exports = {
     });
 
     const registros = [...pessoas, ...cidades, ...saques];
-    const promiseSize = 100;
 
-    for (let index = 0; index < data.length; index += promiseSize) {
-      setTimeout(() => {
-        promisifiedBulk({
-          docs: registros.splice(index, index + promiseSize)
-        }).then(() => {
-          var end = Date.now();
-          var timeSpent = (end - begin) / 1000 + "secs";
-          registrosCriados += promiseSize;
+    promisifiedBulk({
+      docs: registros
 
-          console.log(
-            `Registros criados ${registrosCriados} - Tempo gasto ${timeSpent}`
-          );
-        });
-      }, 10);
-    }
+    }).then(() => {
+
+      var end = Date.now();
+      var timeSpent = (end - begin) / 1000 + "secs";
+      registrosCriados += registros.length;
+
+      console.log(
+        `Registros criados ${registrosCriados} - Tempo gasto ${timeSpent}`
+      );
+    })
+      .catch(err => console.log(err))
   }
-};
+}
