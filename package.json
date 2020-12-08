@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fast-csv": "^3.4.0",
+    "fast-csv": "^4.3.6",
     "mongoose": "^5.7.1",
     "nano": "^8.1.0",
     "uuid": "^3.3.3"
